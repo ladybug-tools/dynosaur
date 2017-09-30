@@ -11,7 +11,8 @@ Revit is supposed to be/is a BIM (Building Information Modeling) platform which 
 A package to extract geometrical and non-geometrical information from Revit rooms and spaces.
 
 ## roadmap
-- [ ] copy the code available in honeybee's revit.py and put it in a python library structure.
+- [x] copy the code available in honeybee's revit.py and put it in a python library structure.
+- [ ] review current open issues on honeybee repository about extracting room geometry! Anton has also made a number of changes to code after testing a number of rooms.
 - [ ] adapt Michal's dynamo script for simplifying window geometries for fast calculation method.
 - [ ] add non-geometrical data to dynosaur!
 - [ ] hopefully by the time Autodesk opens their Room API and we can let dynosaur to happily become extinct!
