@@ -1,0 +1,41 @@
+<Workspace Version="1.3.0.875" X="53.9538115129261" Y="-70.500375749729" zoom="0.779970979395824" ScaleFactor="1" Name="Home" Description="" RunType="Automatic" RunPeriod="1000" HasRunWithoutCrash="True">
+  <NamespaceResolutionMap />
+  <Elements>
+    <PythonNodeModels.PythonStringNode guid="ea240e8c-c094-49bc-9ce4-08ca73d15dbe" type="PythonNodeModels.PythonStringNode" nickname="Python Script From String" x="635.498379733754" y="309.970262523224" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" isPinned="false" inputcount="1">
+      <PortInfo index="0" default="False" />
+    </PythonNodeModels.PythonStringNode>
+    <Dynamo.Graph.Nodes.ZeroTouch.DSFunction guid="cd33ca8f-f335-4167-9b35-e2dceccc36be" type="Dynamo.Graph.Nodes.ZeroTouch.DSFunction" nickname="Polygon.ByPoints" x="1070.75478776433" y="183.173955799979" isVisible="true" isUpstreamVisible="true" lacing="Shortest" isSelectedInput="False" IsFrozen="false" isPinned="false" assembly="ProtoGeometry.dll" function="Autodesk.DesignScript.Geometry.Polygon.ByPoints@Autodesk.DesignScript.Geometry.Point[]">
+      <PortInfo index="0" default="False" />
+    </Dynamo.Graph.Nodes.ZeroTouch.DSFunction>
+    <Dynamo.Graph.Nodes.ZeroTouch.DSFunction guid="f66d89bb-f48e-42c2-b5db-2a163862a969" type="Dynamo.Graph.Nodes.ZeroTouch.DSFunction" nickname="File.ReadText" x="433.372541472916" y="310.368113518135" isVisible="true" isUpstreamVisible="true" lacing="Shortest" isSelectedInput="False" IsFrozen="false" isPinned="false" assembly="DSCoreNodes.dll" function="DSCore.IO.File.ReadText@var">
+      <PortInfo index="0" default="False" />
+    </Dynamo.Graph.Nodes.ZeroTouch.DSFunction>
+    <CoreNodeModels.Input.FileObject guid="b3babe9e-9c42-4123-96c2-73c1c7a1ef86" type="CoreNodeModels.Input.FileObject" nickname="File.FromPath" x="289.606388096622" y="311.166875844277" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" isPinned="false">
+      <PortInfo index="0" default="False" />
+    </CoreNodeModels.Input.FileObject>
+    <CoreNodeModels.Input.Filename guid="4e6c9472-67a2-4afe-b075-29a08c1144e4" type="CoreNodeModels.Input.Filename" nickname="File Path" x="8.53459909491312" y="309.612760899113" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="True" IsFrozen="false" isPinned="false">
+      <System.String>C:\Users\Mostapha\Documents\code\ladybug-tools\dynosaur\test.py</System.String>
+      <HintPath>C:\Users\Mostapha\Documents\code\ladybug-tools\dynosaur\test.py</HintPath>
+    </CoreNodeModels.Input.Filename>
+    <CoreNodeModels.Watch guid="6375d499-42aa-4ebd-a937-23a89420a869" type="CoreNodeModels.Watch" nickname="Watch" x="354.319839911098" y="434.940154133261" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" isPinned="false">
+      <PortInfo index="0" default="False" />
+    </CoreNodeModels.Watch>
+    <CoreNodeModels.Watch guid="c84e60e3-6d36-4095-958f-c6442462413b" type="CoreNodeModels.Watch" nickname="Watch" x="876.487173770743" y="327.2470331546" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" isPinned="false">
+      <PortInfo index="0" default="False" />
+    </CoreNodeModels.Watch>
+  </Elements>
+  <Connectors>
+    <Dynamo.Graph.Connectors.ConnectorModel start="ea240e8c-c094-49bc-9ce4-08ca73d15dbe" start_index="0" end="c84e60e3-6d36-4095-958f-c6442462413b" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="ea240e8c-c094-49bc-9ce4-08ca73d15dbe" start_index="0" end="cd33ca8f-f335-4167-9b35-e2dceccc36be" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="f66d89bb-f48e-42c2-b5db-2a163862a969" start_index="0" end="ea240e8c-c094-49bc-9ce4-08ca73d15dbe" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="f66d89bb-f48e-42c2-b5db-2a163862a969" start_index="0" end="6375d499-42aa-4ebd-a937-23a89420a869" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="b3babe9e-9c42-4123-96c2-73c1c7a1ef86" start_index="0" end="f66d89bb-f48e-42c2-b5db-2a163862a969" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="4e6c9472-67a2-4afe-b075-29a08c1144e4" start_index="0" end="b3babe9e-9c42-4123-96c2-73c1c7a1ef86" end_index="0" portType="0" />
+  </Connectors>
+  <Notes />
+  <Annotations />
+  <Presets />
+  <Cameras>
+    <Camera Name="Background Preview" eyeX="-7119.31311012874" eyeY="9600.03272651567" eyeZ="-10868.5376562029" lookX="7097.61457179757" lookY="-10899.3396296491" lookZ="11222.7052680674" upX="0.242662086345495" upY="0.891006524188375" upZ="0.383695824455018" />
+  </Cameras>
+</Workspace>
