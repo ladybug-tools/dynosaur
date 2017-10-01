@@ -48,7 +48,7 @@ def collect_spaces(document=None):
 
 
 def get_child_elemenets(host_element, add_rect_openings=True, include_shadows=False,
-                        include_embedded_walls=False,
+                        include_embedded_walls=True,
                         include_shared_embedded_inserts=True):
     """Get child elemsts for a Revit element."""
     ids = host_element.FindInserts(add_rect_openings,
@@ -70,31 +70,32 @@ def extract_panels_vertices(host_element, base_face, opt):
     for panel_id in host_element.CurtainGrid.GetPanelIds():
 
         _geo = host_element.Document.GetElement(panel_id).get_Geometry(opt)
+        try:
+            _outerFaces = (p.ToProtoType().Faces[1] for obj in _geo
+                           for p in obj.GetInstanceGeometry())
+            openings = (
+                tuple(edge.StartVertex.PointGeometry for edge in loop.CoEdges)
+                for _outerFace in _outerFaces
+                for loop in _outerFace.Loops
+            )
 
-        _outerFaces = (p.ToProtoType().Faces[1] for obj in _geo
-                       for p in obj.GetInstanceGeometry())
+            coordinates = (
+                tuple(
+                    tuple(base_face.ClosestPointTo(pt) for pt in opening)
+                    for opening in openings
+                ))
+        except AttributeError:
+            continue
+        else:
+            filtered_coordinates = tuple(coorgroup if len(set(coorgroup)) > 2 else None
+                                         for coorgroup in coordinates)
 
-        openings = (
-            tuple(edge.StartVertex.PointGeometry for edge in loop.CoEdges)
-            for _outerFace in _outerFaces
-            for loop in _outerFace.Loops
-        )
+            _panelElementIds.append(panel_id)
+            _panelVertices.append(filtered_coordinates)
 
-        coordinates = (
-            tuple(
-                tuple(base_face.ClosestPointTo(pt) for pt in opening)
-                for opening in openings
-            ))
-
-        filtered_coordinates = tuple(coorgroup if len(set(coorgroup)) > 2 else None
-                                     for coorgroup in coordinates)
-
-        _panelElementIds.append(panel_id)
-        _panelVertices.append(filtered_coordinates)
-
-        # cleaning up
-        (pt.Dispose() for opening in openings for pt in opening)
-        (face.Dispose() for faceGroup in _outerFaces for face in faceGroup)
+            # cleaning up
+            (pt.Dispose() for opening in openings for pt in opening)
+            (face.Dispose() for faceGroup in _outerFaces for face in faceGroup)
 
     return _panelElementIds, _panelVertices
 
@@ -240,7 +241,7 @@ def analyze_rooms(rooms, boundary_location=1):
 
                 new_surface = surface.create_surface(
                     "%s_%s" % (new_room['name'], create_uuid()),
-                    new_room.name,
+                    new_room['name'],
                     face_vertices
                 )
 
@@ -319,7 +320,14 @@ def analyze_rooms(rooms, boundary_location=1):
                         surface.add_fenestration_to_surface(new_surface, new_fen_surface)
                 else:
                     # collect child elements for non-curtain wall systems
-                    childelement_collector = get_child_elemenets(boundary_element)
+                    try:
+                        childelement_collector = get_child_elemenets(boundary_element)
+                    except AttributeError:
+                        # a family like a column, ect. This should be removed from being
+                        # room bounding object
+                        raise ValueError('{} cannot be room bounding'.format(
+                            get_parameter(boundary_element, 'Family')
+                        ))
 
                     if childelement_collector:
 

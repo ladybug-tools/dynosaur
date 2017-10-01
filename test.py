@@ -10,6 +10,7 @@ import traceback
 def extract_vertices(rooms):
     """extract vertices from the room for quick visualization."""
     vertices = []
+    glz_vertices = []
     for room in rooms:
         for surface in room['surfaces']:
             vertices.append(surface['vertices'])
@@ -20,11 +21,11 @@ def extract_vertices(rooms):
                     try:
                         # curtain wall. This should be fixed in the code itself
                         ver[0][0]
-                        vertices.extend(ver)
+                        glz_vertices.extend(ver)
                     except TypeError:
-                        vertices.append(ver)
+                        glz_vertices.append(ver)
 
-    return vertices
+    return vertices, glz_vertices
 
 
 try:
@@ -33,7 +34,7 @@ try:
     # reload(dynosaur.revit)
     import dynosaur.revit as revitosaurus
     rooms = revitosaurus.collect_rooms()
-    roomosaurus, elements = revitosaurus.analyze_rooms(rooms)
+    roomosaurus, elements = revitosaurus.analyze_rooms((rooms[2],))
     OUT = extract_vertices(roomosaurus)
 except Exception as e:
     OUT = traceback.format_exc()
