@@ -203,7 +203,7 @@ def analyze_rooms(rooms, boundary_location=1):
     opt = Options()
     element_collector = []
     room_collector = range(len(rooms))
-    surface_collector = {}  # collect hbSurfaces so I can set adjucent surfaces
+    # surface_collector = {}  # collect hbSurfaces so I can set adjucent surfaces
     for room_count, revit_room in enumerate(rooms):
         # initiate zone based on room id
         element_collector.append([])
@@ -283,12 +283,12 @@ def analyze_rooms(rooms, boundary_location=1):
                 # I'm not sure how this works in Revit but I assume there is an easy
                 # way to find the adjacent surface for an element. Let's hope this time
                 # revit doesn't let me down!
-                if boundary_element.Id not in surface_collector:
-                    surface_collector[boundary_element.Id] = new_surface
-                else:
-                    # TODO(mostapha): set adjacent surface
-                    pass
-
+                # if boundary_element.Id not in surface_collector:
+                #     surface_collector[boundary_element.Id] = new_surface
+                # else:
+                #     # TODO(mostapha): set adjacent surface
+                #     pass
+                # ----------------------- child surfaces --------------------------- #
                 # time to find child surfaces (e.g. windows!)
                 # this is the reason dynosaur exists in the first place
 

@@ -1,23 +1,15 @@
 """dynosaur room face."""
 
-_surface = {
-    'name': None,
-    'vertices': [],
-    'fen_surfaces': [],
-    'parent_id': None
-}
-
-_fensurface = {
-    'name': None,
-    'vertices': [],
-    'parent_id': None
-}
-
 
 def create_surface(name, parent_id=None, vertices=None):
     """Create a new surface."""
     vertices = vertices or []
-    new_surface = dict(_surface)
+    new_surface = {
+        'name': None,
+        'vertices': [],
+        'fen_surfaces': [],
+        'parent_id': None
+    }
     new_surface['name'] = name
     new_surface['parent_id'] = parent_id
     new_surface['vertices'] = vertices
@@ -27,7 +19,11 @@ def create_surface(name, parent_id=None, vertices=None):
 def create_fen_surface(name, parent_id=None, vertices=None):
     """Create a new fenestration surface."""
     vertices = vertices or []
-    new_surface = dict(_fensurface)
+    new_surface = {
+        'name': None,
+        'vertices': [],
+        'parent_id': None
+    }
     new_surface['name'] = name
     new_surface['parent_id'] = parent_id
     new_surface['vertices'] = vertices

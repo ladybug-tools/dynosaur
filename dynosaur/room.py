@@ -1,14 +1,12 @@
 """dynosaur room."""
 
-_room = {
-    'name': None,
-    'surfaces': []
-}
-
 
 def create_room(name):
     """Create a new room."""
-    new_room = dict(_room)
+    new_room = {
+        'name': None,
+        'surfaces': []
+    }
     new_room['name'] = name
     return new_room
 

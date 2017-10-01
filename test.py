@@ -29,12 +29,9 @@ def extract_vertices(rooms):
 
 
 try:
-    # import dynosaur
-    # reload(dynosaur)
-    # reload(dynosaur.revit)
     import dynosaur.revit as revitosaurus
     rooms = revitosaurus.collect_rooms()
-    roomosaurus, elements = revitosaurus.analyze_rooms((rooms[2],))
+    roomosaurus, elements = revitosaurus.analyze_rooms(rooms)
     OUT = extract_vertices(roomosaurus)
 except Exception as e:
     OUT = traceback.format_exc()
