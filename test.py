@@ -24,14 +24,19 @@ def extract_vertices(rooms):
                         glz_vertices.extend(ver)
                     except TypeError:
                         glz_vertices.append(ver)
+                    except IndexError:
+                        glz_vertices.append(ver)
 
     return vertices, glz_vertices
 
 
 try:
+    # import dynosaur
+    # reload(dynosaur)
+    # reload(dynosaur.revit)
     import dynosaur.revit as revitosaurus
-    rooms = revitosaurus.collect_rooms()
-    roomosaurus, elements = revitosaurus.analyze_rooms(rooms)
-    OUT = extract_vertices(roomosaurus)
+    rooms = IN[0]
+    roomosaurus, elements, log = revitosaurus.analyze_rooms(rooms)
+    OUT = log, extract_vertices(roomosaurus), elements
 except Exception as e:
     OUT = traceback.format_exc()

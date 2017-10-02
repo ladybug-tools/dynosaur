@@ -20,7 +20,6 @@ clr.AddReference("RevitNodes")
 from Revit import GeometryConversion
 # Import ToProtoType, ToRevitType geometry conversion extension methods
 clr.ImportExtensions(GeometryConversion)
-
 # clr.AddReference('ProtoGeometry')
 # from Autodesk.DesignScript.Geometry import Point
 
@@ -51,10 +50,14 @@ def get_child_elemenets(host_element, add_rect_openings=True, include_shadows=Fa
                         include_embedded_walls=True,
                         include_shared_embedded_inserts=True):
     """Get child elemsts for a Revit element."""
-    ids = host_element.FindInserts(add_rect_openings,
-                                   include_shadows,
-                                   include_embedded_walls,
-                                   include_shared_embedded_inserts)
+    try:
+        ids = host_element.FindInserts(add_rect_openings,
+                                       include_shadows,
+                                       include_embedded_walls,
+                                       include_shared_embedded_inserts)
+    except AttributeError:
+        # host element is not a wall, roof, etc. It's something like a column
+        return ()
 
     return tuple(host_element.Document.GetElement(i) for i in ids)
 
@@ -69,33 +72,37 @@ def extract_panels_vertices(host_element, base_face, opt):
 
     for panel_id in host_element.CurtainGrid.GetPanelIds():
 
-        _geo = host_element.Document.GetElement(panel_id).get_Geometry(opt)
-        try:
-            _outerFaces = (p.ToProtoType().Faces[1] for obj in _geo
-                           for p in obj.GetInstanceGeometry())
-            openings = (
-                tuple(edge.StartVertex.PointGeometry for edge in loop.CoEdges)
-                for _outerFace in _outerFaces
-                for loop in _outerFace.Loops
-            )
+        panel_el = host_element.Document.GetElement(panel_id)
+        geometries = panel_el.get_Geometry(opt)
+        # From here solids are dynamo objects
+        solids = tuple(p.ToProtoType()
+                       for geometry in geometries
+                       for p in geometry.GetInstanceGeometry())
 
-            coordinates = (
-                tuple(
-                    tuple(base_face.ClosestPointTo(pt) for pt in opening)
-                    for opening in openings
-                ))
-        except AttributeError:
-            continue
-        else:
-            filtered_coordinates = tuple(coorgroup if len(set(coorgroup)) > 2 else None
-                                         for coorgroup in coordinates)
+        if panel_el.Name == 'Curtain Wall Dbl Glass':
+            # remove handle geometry
+            solids = solids[2:]
 
+        outer_faces = (
+            sorted(s.Faces, key=lambda x: x.SurfaceGeometry().Area, reverse=True)[0]
+            for s in solids if s and s.Faces.Length != 0)
+
+        vertices = tuple(
+            tuple(ver.PointGeometry for ver in outer_face.Vertices)
+            for outer_face in outer_faces
+        )
+
+        coordinates = tuple(
+            (base_face.ClosestPointTo(ver) for ver in ver_group)
+            for ver_group in vertices
+        )
+
+        for coords in coordinates:
             _panelElementIds.append(panel_id)
-            _panelVertices.append(filtered_coordinates)
+            _panelVertices.append(coords)
 
-            # cleaning up
-            (pt.Dispose() for opening in openings for pt in opening)
-            (face.Dispose() for faceGroup in _outerFaces for face in faceGroup)
+        # cleaning up
+        (solid.Dispose() for solid in solids)
 
     return _panelElementIds, _panelVertices
 
@@ -130,8 +137,9 @@ def exctract_glazing_vertices(host_element, base_face, opt):
     (pt.Dispose() for opening in openings for pt in opening)
     (face.Dispose() for faceGroup in faces for face in faceGroup)
 
-    filtered_coordinates = tuple(coorgroup if len(set(coorgroup)) > 2 else None
-                                 for coorgroup in coordinates)
+    filtered_coordinates = tuple(coorgroup
+                                 for coorgroup in coordinates
+                                 if len(set(coorgroup)) > 2)
 
     return filtered_coordinates
 
@@ -190,6 +198,8 @@ def analyze_rooms(rooms, boundary_location=1):
         blob/master/SpatialElementGeometryCalculator/Command.cs
     """
     # unwrap room elements
+    # this is not the right way of logging in python and probably any other language
+    log = []
     rooms = tuple(_get_internalelement_collector(rooms))
     if not rooms:
         return []
@@ -301,9 +311,9 @@ def analyze_rooms(rooms, boundary_location=1):
 
                     for count, coordinate in enumerate(_coordinates):
                         if not coordinate:
-                            print("{} has an opening with less than "
-                                  "two coordinates. It has been removed!"
-                                  .format(boundary_element.Id))
+                            log.append("{} has an opening with less than "
+                                       "two coordinates. It has been removed!"
+                                       .format(_elementIds[count]))
                             continue
 
                         # create honeybee surface - use element id as the name
@@ -320,14 +330,7 @@ def analyze_rooms(rooms, boundary_location=1):
                         surface.add_fenestration_to_surface(new_surface, new_fen_surface)
                 else:
                     # collect child elements for non-curtain wall systems
-                    try:
-                        childelement_collector = get_child_elemenets(boundary_element)
-                    except AttributeError:
-                        # a family like a column, ect. This should be removed from being
-                        # room bounding object
-                        raise ValueError('{} cannot be room bounding'.format(
-                            get_parameter(boundary_element, 'Family')
-                        ))
+                    childelement_collector = get_child_elemenets(boundary_element)
 
                     if childelement_collector:
 
@@ -340,10 +343,12 @@ def analyze_rooms(rooms, boundary_location=1):
                         for count, coordinate in enumerate(_coordinates):
 
                             if not coordinate:
-                                print("{} has an opening with less than "
-                                      "two coordinates. It has been removed!"
-                                      .format(childelement_collector[count].Id))
-                                continue
+                                log.append("{} in {} has an opening with less than "
+                                           "two coordinates. It has been removed!"
+                                           .format(
+                                               childelement_collector[count].Id,
+                                               new_room['name']
+                                           ))
 
                             # create honeybee surface - use element id as the name
                             new_fen_surface = surface.create_fen_surface(
@@ -371,4 +376,4 @@ def analyze_rooms(rooms, boundary_location=1):
         revit_room_spatial_data.Dispose()
 
     calculator.Dispose()
-    return room_collector, element_collector
+    return room_collector, element_collector, log
