@@ -1,4 +1,4 @@
-<img width="826" alt="dynosaur_ftw" src="https://user-images.githubusercontent.com/2915573/31060995-3404a124-a6ea-11e7-8920-f4f21d119f90.png">
+![image](https://user-images.githubusercontent.com/2915573/31094008-98a0bd7e-a781-11e7-8f39-bb5e98ec7585.png)
 
 # dynosaur
 dynosaur is a package for DynamoBIM to extract geometrical and non-geometrical info from Revit rooms and spaces.
@@ -19,7 +19,7 @@ A package to extract geometrical and non-geometrical information from Revit room
 ## roadmap
 - [x] copy the code available in honeybee's revit.py and put it in a python library structure.
 - [x] review current open issues on honeybee repository about extracting room geometry! Anton has also made a number of changes to code after testing a number of rooms.
-- [ ] adapt Michal's dynamo script for simplifying window geometries for fast calculation method.
+- [x] adapt Michal's dynamo script for simplifying window geometries for fast calculation method. [I decided against this one!]
 - [ ] add non-geometrical data to dynosaur!
 - [ ] hopefully by the time Autodesk opens their Room API and we can let dynosaur to happily become extinct!
 
