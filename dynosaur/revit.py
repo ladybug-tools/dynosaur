@@ -7,7 +7,7 @@ import uuid
 import clr
 clr.AddReference("RevitAPI")
 from Autodesk.Revit.DB import FilteredElementCollector, \
-    BuiltInCategory, Options, Solid
+    BuiltInCategory, Options, Solid, UnitUtils
 
 # objects for spatial calculation
 from Autodesk.Revit.DB import SpatialElementGeometryCalculator, \
@@ -15,13 +15,28 @@ from Autodesk.Revit.DB import SpatialElementGeometryCalculator, \
 
 clr.AddReference("RevitServices")
 from RevitServices.Persistence import DocumentManager
+from Autodesk.Revit.DB import UnitType, DisplayUnitType
 
 clr.AddReference("RevitNodes")
 from Revit import GeometryConversion
 # Import ToProtoType, ToRevitType geometry conversion extension methods
 clr.ImportExtensions(GeometryConversion)
-# clr.AddReference('ProtoGeometry')
-# from Autodesk.DesignScript.Geometry import Point
+
+clr.AddReference('ProtoGeometry')
+from Autodesk.DesignScript.Geometry import Point, Surface
+
+import sys
+sys.path.append(r'C:\Program Files (x86)\IronPython 2.7\Lib')
+from collections import OrderedDict
+
+
+def unit_conversion():
+    """Convert Revit units to Dynamo Units."""
+    doc = DocumentManager.Instance.CurrentDBDocument
+    doc_units = doc.GetUnits()
+    length_unit = doc_units.GetFormatOptions(UnitType.UT_Length).DisplayUnits
+
+    return 1.0 / UnitUtils.ConvertToInternalUnits(1.0, length_unit)
 
 
 def collect_rooms(document=None):
@@ -69,8 +84,8 @@ def extract_panels_vertices(host_element, base_face, opt):
 
     _panelElementIds = []
     _panelVertices = []
-
-    for panel_id in host_element.CurtainGrid.GetPanelIds():
+    panel_ids = host_element.CurtainGrid.GetPanelIds()
+    for panel_id in panel_ids:
 
         panel_el = host_element.Document.GetElement(panel_id)
         geometries = panel_el.get_Geometry(opt)
@@ -83,7 +98,7 @@ def extract_panels_vertices(host_element, base_face, opt):
             # remove handle geometry
             solids = solids[2:]
 
-        outer_faces = (
+        outer_faces = tuple(
             sorted(s.Faces, key=lambda x: x.SurfaceGeometry().Area, reverse=True)[0]
             for s in solids if s and s.Faces.Length != 0)
 
@@ -189,6 +204,47 @@ def get_parameter(el, parameter):
                  if p.Definition.Name == parameter)[0]
 
 
+def get_dynamo_room_faces(revit_room_geometry):
+    rounding = 4
+    try:
+        room_faces_dyn = \
+            tuple(face.ToProtoType()[0] for face in revit_room_geometry.Faces)
+    except StandardError:
+        scale = unit_conversion()
+        # try to recreate the faces from the edges
+        loops = tuple(loop for face in revit_room_geometry.Faces
+                      for loop in face.EdgeLoops)
+
+        # collect all the start and end points
+        start_ends = (((e.Evaluate(1), e.Evaluate(0)) if count == 0 else
+                       (e.Evaluate(0), e.Evaluate(1))
+                       for count, e in enumerate(loop)) for loop in loops)
+
+        # round the values
+        points = ((
+            (round(pt.X, rounding), round(pt.Y, rounding), round(pt.Z, rounding))
+            for edge in loop for pt in edge)
+            for loop in start_ends)
+
+        # remove duplicated points
+        xyz_unique = (list(OrderedDict.fromkeys(pts)) for pts in points)
+
+        room_faces_dyn = []
+        for pgroup in xyz_unique:
+            try:
+                face = Surface.ByPerimeterPoints(Point.ByCoordinates(*p).Scale(scale)
+                                                 for p in pgroup)
+            except StandardError:
+                # changing the order was not needed for this face
+                pgroup[0], pgroup[1] = pgroup[1], pgroup[0]
+                face = Surface.ByPerimeterPoints(Point.ByCoordinates(*p).Scale(scale)
+                                                 for p in pgroup)
+
+            room_faces_dyn.append(face)
+
+    return room_faces_dyn
+
+
 def analyze_rooms(rooms, boundary_location=1):
     """Convert revit rooms to dynosaur rooms.
 
@@ -221,11 +277,12 @@ def analyze_rooms(rooms, boundary_location=1):
 
         # calculate spatial data for revit room
         revit_room_spatial_data = calculator.CalculateSpatialElementGeometry(revit_room)
+
         # get the geometry of the room
         revit_room_geometry = revit_room_spatial_data.GetGeometry()
+
         # Cast revit room faces to dynamo geometry using ToProtoType method
-        room_faces_dyn = \
-            tuple(face.ToProtoType()[0] for face in revit_room_geometry.Faces)
+        room_faces_dyn = get_dynamo_room_faces(revit_room_geometry)
 
         assert revit_room_geometry.Faces.Size == len(room_faces_dyn), \
             "Number of rooms elements ({}) doesn't match number of faces ({}).\n" \
@@ -260,7 +317,7 @@ def analyze_rooms(rooms, boundary_location=1):
 
             for boundary_face in boundary_faces:
                 # boundary_face is a SpatialElementBoundarySubface
-                # we need ti get the element (Wall, Roof, etc) first
+                # we need to get the element (Wall, Roof, etc) first
                 boundary_element = doc.GetElement(
                     boundary_face.SpatialBoundaryElement.HostElementId
                 )
@@ -298,7 +355,11 @@ def analyze_rooms(rooms, boundary_location=1):
                 # else:
                 #     # TODO(mostapha): set adjacent surface
                 #     pass
-                # ----------------------- child surfaces --------------------------- #
+
+                # -------------------------------------------------------------------- #
+                # ----------------------- child surfaces ----------------------------- #
+                # -------------------------------------------------------------------- #
+
                 # time to find child surfaces (e.g. windows!)
                 # this is the reason dynosaur exists in the first place
 
@@ -306,6 +367,7 @@ def analyze_rooms(rooms, boundary_location=1):
                 # This will most likely fail for custom curtain walls
                 if get_parameter(boundary_element, 'Family') == 'Curtain Wall':
                     # get cooredinates and element ids for this curtain wall.
+
                     _elementIds, _coordinates = extract_panels_vertices(
                         boundary_element, base_face_dyn, opt)
 
@@ -332,38 +394,40 @@ def analyze_rooms(rooms, boundary_location=1):
                     # collect child elements for non-curtain wall systems
                     childelement_collector = get_child_elemenets(boundary_element)
 
-                    if childelement_collector:
+                    if not childelement_collector:
+                        room.add_surface_to_room(new_room, new_surface)
+                        continue
 
-                        _coordinates = exctract_glazing_vertices(
-                            boundary_element,
-                            base_face_dyn,
-                            opt
+                    _coordinates = exctract_glazing_vertices(
+                        boundary_element,
+                        base_face_dyn,
+                        opt
+                    )
+
+                    for count, coordinate in enumerate(_coordinates):
+
+                        if not coordinate:
+                            log.append("{} in {} has an opening with less than "
+                                       "two coordinates. It has been removed!"
+                                       .format(
+                                           childelement_collector[count].Id,
+                                           new_room['name']
+                                       ))
+
+                        # create honeybee surface - use element id as the name
+                        new_fen_surface = surface.create_fen_surface(
+                            childelement_collector[count].Id,
+                            new_room['name'],
+                            coordinate
                         )
 
-                        for count, coordinate in enumerate(_coordinates):
-
-                            if not coordinate:
-                                log.append("{} in {} has an opening with less than "
-                                           "two coordinates. It has been removed!"
-                                           .format(
-                                               childelement_collector[count].Id,
-                                               new_room['name']
-                                           ))
-
-                            # create honeybee surface - use element id as the name
-                            new_fen_surface = surface.create_fen_surface(
-                                childelement_collector[count].Id,
-                                new_room['name'],
-                                coordinate
-                            )
-
-                            # add fenestration surface to base honeybee surface
-                            element_collector[room_count].append(
-                                childelement_collector[count]
-                            )
-                            # add fenestration surface to base surface
-                            surface.add_fenestration_to_surface(new_surface,
-                                                                new_fen_surface)
+                        # add fenestration surface to base honeybee surface
+                        element_collector[room_count].append(
+                            childelement_collector[count]
+                        )
+                        # add fenestration surface to base surface
+                        surface.add_fenestration_to_surface(new_surface,
+                                                            new_fen_surface)
 
                 # add surface to dynosaur room
                 room.add_surface_to_room(new_room, new_surface)
