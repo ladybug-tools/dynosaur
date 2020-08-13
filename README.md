@@ -1,3 +1,5 @@
+# This project is retired! See the [honeybee-revit](https://github.com/ladybug-tools/honeybee-revit) project for a successful implementation!
+
 <img src="https://user-images.githubusercontent.com/2915573/31320448-c5998df4-ac42-11e7-8573-fa0144fb522e.png" width="150" height="150" />
 
 # dynosaur
